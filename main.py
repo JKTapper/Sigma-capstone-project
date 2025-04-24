@@ -61,26 +61,6 @@ class room():
         object('b',player.coords,self)
 
 
-def move_up(coords):
-    if coords[1] == 0:
-        return coords
-    return [coords[0],coords[1]-1]
-
-def move_down(coords):
-    if coords[1] == size_of_current_room - 1:
-        return coords
-    return [coords[0],coords[1]+1]
-
-def move_left(coords):
-    if coords[0] == 0:
-        return coords
-    return [coords[0]-1,coords[1]]
-
-def move_right(coords):
-    if coords[0] == size_of_current_room - 1:
-        return coords
-    return [coords[0]+1,coords[1]]
-
 vectors = {
     'w':[0,-1],
     'a':[-1,0],
