@@ -11,6 +11,25 @@ def translate_coords_into_index_in_room_string(coords,size,orientation):
     location = adjusted_coords[0] + (size+3)*adjusted_coords[1] + size + 4
     return location
 
+direction = {
+    (True,True):[0,1],
+    (True,False):[-1,0],
+    (False,True):[1,0],
+    (False,False):[0,-1]
+}
+
+def check_direction(coords):
+    x,y = coords
+    object_direction = direction[(y>x,y>-x)]
+    return object_direction
+
+def allign_vectors(vector1,vector2):
+    correction_orientation = 0
+    while vector1 != vector2:
+        correction_orientation += 1
+        vector2 = rotate_coords(vector2,1)
+    return correction_orientation
+
 class object():
     def __init__(self,symbol,coords,room):
         self.symbol = symbol
@@ -38,9 +57,14 @@ class object():
         self.room.objects.remove(self)
         for room in connection_ends:
             if room != self.room:
+                old_orientation = self.room.orientation
                 self.room = room
                 self.room.objects.add(self)
+                old_direction = check_direction(self.coords)
                 self.coords = connection_ends[room]
+                new_direction = [-coord for coord in check_direction(self.coords)]
+                correction_rotation = allign_vectors(old_direction,new_direction)
+                self.room.orientation = (correction_rotation + old_orientation)%4
                 break
     
     def draw_object(self,room_string):
@@ -110,7 +134,10 @@ player_actions = {
 rooms = []
 current_room = room(2)
 test_connected_room = room(3)
+test_connected_room2 = room(3)
 connection_between_rooms({current_room:(3,0),test_connected_room:(-4,0)})
+connection_between_rooms({current_room:(-3,0),test_connected_room2:(-4,0)})
+connection_between_rooms({test_connected_room:(0,-4),test_connected_room2:(4,0)})
 player = object('X',[0,0],current_room)
 
 while True:
