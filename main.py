@@ -1,16 +1,9 @@
-def rotate_coords(coords, orientation, size):
+def rotate_coords(coords, orientation):
     while orientation > 0:
-        rotated_by_90_coords = [size-coords[1]-1,coords[0]]
+        rotated_by_90_coords = [-coords[1],coords[0]]
         coords = rotated_by_90_coords
         orientation -= 1
     return coords
-
-def rotate_vector(vector,orientation):
-    while orientation > 0:
-        rotated_by_90_vector = [-vector[1],vector[0]]
-        vector = rotated_by_90_vector
-        orientation -= 1
-    return vector
 
 class object():
     def __init__(self,symbol,coords,room):
@@ -20,16 +13,16 @@ class object():
         room.objects.append(self)
     
     def move_object(self,vector):
-        print(vector)
-        rotated_vector = rotate_vector(vector,(4-self.room.orientation) % 4)
-        print(rotated_vector)
+        rotated_vector = rotate_coords(vector,(4-self.room.orientation) % 4)
         new_coords = [sum(displacement) for displacement in zip(self.coords,rotated_vector)]
-        if new_coords[0] in range(self.room.size) and new_coords[1] in range(self.room.size):
+        size = self.room.size_category
+        if new_coords[0] in range(-size,size+1) and new_coords[1] in range(-size,size+1):
             self.coords = new_coords
     
     def draw_object(self,room_string):
-        rotated_coords = rotate_coords(self.coords,self.room.orientation,self.room.size)
-        location = rotated_coords[0] + (self.room.size+3)*rotated_coords[1] + self.room.size + 4
+        rotated_coords = rotate_coords(self.coords,self.room.orientation)
+        adjusted_coords = [coord + self.room.size_category for coord in rotated_coords]
+        location = adjusted_coords[0] + (self.room.size+3)*adjusted_coords[1] + self.room.size + 4
         new_room_string = room_string[:location] + self.symbol + room_string[location+1:]
         return new_room_string
         
@@ -39,6 +32,7 @@ class room():
         #self.connections = connections
         self.orientation = 0
         self.size = size*2 + 1
+        self.size_category = size
         empty_row = '|' + ' '*self.size + '|'
         top_and_bottom = ' ' + '-'*self.size + ' '
         rows = [top_and_bottom] + [empty_row]*self.size + [top_and_bottom]
@@ -75,7 +69,7 @@ player_actions = {
 }
 
 current_room = room(2)
-player = object('X',[1,1],current_room)
+player = object('X',[0,0],current_room)
 
 while True:
     print(current_room)
