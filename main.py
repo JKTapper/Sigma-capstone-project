@@ -7,6 +7,8 @@ game_keys = {'w','a','s','d','q','e','b','x'}
 #        for key in game_keys:
 #            if keyboard.is_pressed(key):
 #                return key
+#from labyrinth_generator import labyrinth 
+import random
 
 def rotate_coords(coords, orientation):
     while orientation > 0:
@@ -24,23 +26,16 @@ def translate_coords_into_index_in_room_string(coords,size,orientation):
     return location
 
 direction = {
-    (True,True):[0,1],
-    (True,False):[-1,0],
-    (False,True):[1,0],
-    (False,False):[0,-1]
+    (True,True):0,
+    (True,False):1,
+    (False,True):3,
+    (False,False):2
 }
 
 def check_direction(coords):
     x,y = coords
     object_direction = direction[(y>x,y>-x)]
     return object_direction
-
-def allign_vectors(vector1,vector2):
-    correction_orientation = 0
-    while vector1 != vector2:
-        correction_orientation += 1
-        vector2 = rotate_coords(vector2,1)
-    return correction_orientation
 
 def empty_room(size):
         empty_row = '|' + ' '*size + '|'
@@ -58,14 +53,15 @@ class object():
         self.coords = coords
         self.room = room
         room.objects.add(self)
+        self.visited_rooms = {room}
     
     def move_object(self,vector):
         if automatically_drop_breadcrumbs:
             self.room.drop_breadcrumb()
         rotated_vector = rotate_coords(vector,(4-self.room.orientation) % 4)
         new_coords = [sum(displacement) for displacement in zip(self.coords,rotated_vector)]
-        size = self.room.size_category
-        if new_coords[0] in range(-size,size+1) and new_coords[1] in range(-size,size+1):
+        half_length = self.room.size // 2
+        if new_coords[0] in range(-half_length,half_length+1) and new_coords[1] in range(-half_length,half_length+1):
             self.coords = new_coords
         else:
             self.check_if_object_is_in_doorway(new_coords)
@@ -82,12 +78,13 @@ class object():
         for room in connection_ends:
             if room != self.room:
                 old_orientation = self.room.orientation
+                self.visited_rooms.add(room)
                 self.room = room
                 self.room.objects.add(self)
                 old_direction = check_direction(self.coords)
                 self.coords = connection_ends[room]
-                new_direction = [-coord for coord in check_direction(self.coords)]
-                correction_rotation = allign_vectors(old_direction,new_direction)
+                new_direction = (check_direction(self.coords) + 2)%4
+                correction_rotation = old_direction - new_direction
                 self.room.orientation = (correction_rotation + old_orientation)%4
                 break
     
@@ -98,10 +95,9 @@ class object():
         
 
 class room():
-    def __init__(self,size=1):
+    def __init__(self,size=3):
         self.orientation = 0
-        self.size = size*2 + 1
-        self.size_category = size
+        self.size = size
         empty_room_string = empty_room(self.size)
         self.empty_room_strings = {orientation:empty_room_string for orientation in range (0,4)}
         self.objects = set({})
@@ -169,13 +165,41 @@ player_actions = {
     'b':room.drop_breadcrumb
 }
 
+class labrinyth():
+
+    def __init__(self,room_count = int(input('How many rooms do you want the labyrinth to have?'))):
+        self.rooms = []
+        self.available_doorway_locations = []
+        self.current_number_of_rooms = 0
+        self.add_room_to_labrinyth(15)
+        while len(self.rooms) < room_count:
+            new_room_size = random.randrange(3,7,2)
+            new_room = self.add_room_to_labrinyth(new_room_size)
+
+    def add_room_to_labrinyth(self,size):
+        new_room = room(size)
+        half_length = (size//2)+1
+        self.rooms.append(new_room)
+        new_room_doorway_locations = [
+            (new_room,(0,half_length)),
+            (new_room,(0,-half_length)),
+            (new_room,(half_length,0)),
+            (new_room,(-half_length,0)),
+        ]
+        if self.current_number_of_rooms > 0:
+            entrance_to_new_room = new_room_doorway_locations.pop(random.randint(0,len(new_room_doorway_locations)-1))
+            self.connect_room_to_labrinyth(entrance_to_new_room)
+        self.available_doorway_locations += new_room_doorway_locations
+        self.current_number_of_rooms += 1
+    
+    def connect_room_to_labrinyth(self,entrance_to_new_room):
+        exit_to_rest_of_labyrinth = self.available_doorway_locations.pop(random.randint(0,len(self.available_doorway_locations)-1))
+        connection_between_rooms({entrance_to_new_room[0]:entrance_to_new_room[1],exit_to_rest_of_labyrinth[0]:exit_to_rest_of_labyrinth[1]})
+        print(repr(entrance_to_new_room[0]) + ' >>> ' + repr(exit_to_rest_of_labyrinth[0]))
+
 rooms = []
-current_room = room(2)
-test_connected_room = room(3)
-test_connected_room2 = room(3)
-connection_between_rooms({current_room:(3,0),test_connected_room:(-4,0)})
-connection_between_rooms({current_room:(-3,0),test_connected_room2:(-4,0)})
-connection_between_rooms({test_connected_room:(0,-4),test_connected_room2:(4,0)})
+labrinyth1 = labrinyth()
+current_room = labrinyth1.rooms[-1]
 player = object('X',[0,0],current_room)
 automatically_drop_breadcrumbs = togglabe_setting(True)
 
@@ -193,3 +217,4 @@ if __name__ == '__main__':
                 player_actions[action_char](current_room)
             elif action_char == 'b':
                 automatically_drop_breadcrumbs.toggle()
+        print("You have explored " + str(len(player.visited_rooms)) + ' rooms.')
