@@ -1,3 +1,13 @@
+#import keyboard
+#
+game_keys = {'w','a','s','d','q','e','b','x'}
+#
+#def get_user_input():
+#    while True:
+#        for key in game_keys:
+#            if keyboard.is_pressed(key):
+#                return key
+
 def rotate_coords(coords, orientation):
     while orientation > 0:
         rotated_by_90_coords = [-coords[1],coords[0]]
@@ -8,6 +18,8 @@ def rotate_coords(coords, orientation):
 def translate_coords_into_index_in_room_string(coords,size,orientation):
     rotated_coords = rotate_coords(coords,orientation)
     adjusted_coords = [coord + (size//2) for coord in rotated_coords]
+    if any([coord not in range(-1,size+1) for coord in adjusted_coords]):
+        raise Exception('OutOfBounds')
     location = adjusted_coords[0] + (size+3)*adjusted_coords[1] + size + 4
     return location
 
@@ -30,6 +42,16 @@ def allign_vectors(vector1,vector2):
         vector2 = rotate_coords(vector2,1)
     return correction_orientation
 
+def empty_room(size):
+        empty_row = '|' + ' '*size + '|'
+        top_and_bottom = ' ' + '-'*size + ' '
+        rows = [top_and_bottom] + [empty_row]*size + [top_and_bottom]
+        return '\n'.join(rows)
+
+def insert_into(string,index,symbol):
+    new_string = string[:index] + symbol + string[index+1:]
+    return new_string
+
 class object():
     def __init__(self,symbol,coords,room):
         self.symbol = symbol
@@ -38,6 +60,8 @@ class object():
         room.objects.add(self)
     
     def move_object(self,vector):
+        if automatically_drop_breadcrumbs:
+            self.room.drop_breadcrumb()
         rotated_vector = rotate_coords(vector,(4-self.room.orientation) % 4)
         new_coords = [sum(displacement) for displacement in zip(self.coords,rotated_vector)]
         size = self.room.size_category
@@ -78,10 +102,8 @@ class room():
         self.orientation = 0
         self.size = size*2 + 1
         self.size_category = size
-        empty_row = '|' + ' '*self.size + '|'
-        top_and_bottom = ' ' + '-'*self.size + ' '
-        rows = [top_and_bottom] + [empty_row]*self.size + [top_and_bottom]
-        self.empty_room_string = '\n'.join(rows)
+        empty_room_string = empty_room(self.size)
+        self.empty_room_strings = {orientation:empty_room_string for orientation in range (0,4)}
         self.objects = set({})
         self.doorways = {}
         rooms.append(self)
@@ -91,7 +113,7 @@ class room():
         return 'room' + str(self.room_number)
 
     def __str__(self):
-        room_string = self.empty_room_string
+        room_string = self.empty_room_strings[self.orientation]
         for doorway in self.doorways:
             doorway_location = translate_coords_into_index_in_room_string(list(doorway),self.size,self.orientation)
             room_string = room_string[:doorway_location] + ' ' + room_string[doorway_location+1:]
@@ -106,7 +128,7 @@ class room():
         self.orientation = (self.orientation - 1) % 4
     
     def drop_breadcrumb(self):
-        object('b',player.coords,self)
+        mark(self,player.coords,'.')
     
     def add_doorway(self,doorway_location,connection):
         self.doorways[doorway_location] = connection
@@ -117,6 +139,22 @@ class connection_between_rooms():
         self.connected_doorways = doorways
         for doorway in doorways:
             doorway.add_doorway(doorways[doorway],self)
+
+class mark():
+    
+    def __init__(self,room,coords,symbol):
+        room.empty_room_strings = {orientation:insert_into(room.empty_room_strings[orientation],translate_coords_into_index_in_room_string(coords,room.size,orientation),symbol) for orientation in range(0,4)}
+
+class togglabe_setting():
+
+    def __init__(self,initial_state):
+        self.state = initial_state
+    
+    def __bool__(self):
+        return self.state
+    
+    def toggle(self):
+        self.state = not self.state
 
 vectors = {
     'w':[0,-1],
@@ -139,6 +177,7 @@ connection_between_rooms({current_room:(3,0),test_connected_room:(-4,0)})
 connection_between_rooms({current_room:(-3,0),test_connected_room2:(-4,0)})
 connection_between_rooms({test_connected_room:(0,-4),test_connected_room2:(4,0)})
 player = object('X',[0,0],current_room)
+automatically_drop_breadcrumbs = togglabe_setting(True)
 
 if __name__ == '__main__':
     while True:
@@ -150,5 +189,7 @@ if __name__ == '__main__':
         for action_char in player_action_sequence:
             if action_char in 'wasd':
                 player.move_object(vectors[action_char])
-            else:
+            elif action_char in 'qe':
                 player_actions[action_char](current_room)
+            elif action_char == 'b':
+                automatically_drop_breadcrumbs.toggle()
