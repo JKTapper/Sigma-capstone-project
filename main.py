@@ -140,14 +140,15 @@ connection_between_rooms({current_room:(-3,0),test_connected_room2:(-4,0)})
 connection_between_rooms({test_connected_room:(0,-4),test_connected_room2:(4,0)})
 player = object('X',[0,0],current_room)
 
-while True:
-    current_room = player.room
-    print(current_room)
-    player_action_sequence = input()
-    if player_action_sequence == 'exit':
-        break
-    for action_char in player_action_sequence:
-        if action_char in 'wasd':
-            player.move_object(vectors[action_char])
-        else:
-            player_actions[action_char](current_room)
+if __name__ == '__main__':
+    while True:
+        current_room = player.room
+        print(current_room)
+        player_action_sequence = input()
+        if player_action_sequence == 'exit':
+            break
+        for action_char in player_action_sequence:
+            if action_char in 'wasd':
+                player.move_object(vectors[action_char])
+            else:
+                player_actions[action_char](current_room)
