@@ -89,6 +89,7 @@ class object():
                 break
     
     def draw_object(self,room_string):
+        #print(repr(self.room))
         location = translate_coords_into_index_in_room_string(self.coords,self.room.size,self.room.orientation)
         new_room_string = room_string[:location] + self.symbol + room_string[location+1:]
         return new_room_string
@@ -173,8 +174,10 @@ class labrinyth():
         self.current_number_of_rooms = 0
         self.add_room_to_labrinyth(15)
         while len(self.rooms) < room_count:
-            new_room_size = random.randrange(3,7,2)
+            new_room_size = random.randrange(5,11,2)
             new_room = self.add_room_to_labrinyth(new_room_size)
+        for i in range(room_count//20):
+            self.add_random_connection()
 
     def add_room_to_labrinyth(self,size):
         new_room = room(size)
@@ -195,7 +198,16 @@ class labrinyth():
     def connect_room_to_labrinyth(self,entrance_to_new_room):
         exit_to_rest_of_labyrinth = self.available_doorway_locations.pop(random.randint(0,len(self.available_doorway_locations)-1))
         connection_between_rooms({entrance_to_new_room[0]:entrance_to_new_room[1],exit_to_rest_of_labyrinth[0]:exit_to_rest_of_labyrinth[1]})
-        print(repr(entrance_to_new_room[0]) + ' >>> ' + repr(exit_to_rest_of_labyrinth[0]))
+        #print(repr(entrance_to_new_room[0]) + ' >>> ' + repr(exit_to_rest_of_labyrinth[0]))
+    
+    def add_random_connection(self):
+        while True:
+            random_entrace,random_exit = random.choice(self.available_doorway_locations),random.choice(self.available_doorway_locations)
+            if random_entrace[0] != random_exit[0]:
+                connection_between_rooms({random_entrace[0]:random_entrace[1],random_exit[0]:random_exit[1]})
+                #print(repr(random_entrace[0]) + ' ~ ' + repr(random_exit[0]))
+                break
+
 
 rooms = []
 labrinyth1 = labrinyth()
